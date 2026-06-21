@@ -68,33 +68,32 @@ ArchiveModel loadArchive(std::ifstream& in)
         e.name.resize(nameLen);
         in.read(e.name.data(), nameLen);
 
-        in.read((char*)&e.size, sizeof(e.size));
-        in.read((char*)&e.offset, sizeof(e.offset));
+        in.read((char*)&e.originalSize, sizeof(e.originalSize));
+        in.read((char*)&e.dataOffset, sizeof(e.dataOffset));
         in.read((char*)&e.crc32, sizeof(e.crc32));
     }
 
     model.data.clear();
 
     uint64_t currentOffset = 0;
-    
+
     for (auto& e : model.index)
     {
-        std::vector<uint8_t> buffer(e.size);
-    
-        in.seekg(e.offset);
-    
+        std::vector<uint8_t> buffer(e.originalSize);
+
+        in.seekg(e.dataOffset);
+
         in.read(
             (char*)buffer.data(),
-            e.size);
-        
-        e.offset = currentOffset;
-        
+            e.originalSize);
+
+        e.dataOffset = currentOffset;
+
         model.data.insert(
             model.data.end(),
             buffer.begin(),
             buffer.end());
-        
-        currentOffset += e.size;
+        currentOffset += e.originalSize;
     }
 
     return model;
@@ -137,8 +136,8 @@ bool writeArchive(
 
     for (auto& e : updatedIndex)
     {
-        e.offset = currentOffset;
-        currentOffset += e.size;
+        uint64_t archiveOffset = currentOffset;
+        currentOffset += e.compressedSize;
     }
 
     out.write((char*)&MAGIC, sizeof(MAGIC));
@@ -154,8 +153,8 @@ bool writeArchive(
         out.write((char*)&len, sizeof(len));
         out.write(e.name.data(), len);
 
-        out.write((char*)&e.size, sizeof(e.size));
-        out.write((char*)&e.offset, sizeof(e.offset));
+        out.write((char*)&e.originalSize, sizeof(e.originalSize));
+        out.write((char*)&e.dataOffset, sizeof(e.dataOffset));
         out.write((char*)&e.crc32, sizeof(e.crc32));
     }
 
@@ -217,8 +216,8 @@ bool Archive::create(
     {
         FileEntry e;
         e.name = f.name;
-        e.size = f.data.size();
-        e.offset = offset;
+        e.originalSize = f.data.size();
+        e.dataOffset = offset;
         e.crc32 = crc32(f.data.data(), f.data.size());
 
         model.index.push_back(e);
@@ -273,8 +272,9 @@ bool Archive::add(
 
         FileEntry e;
         e.name = std::filesystem::path(path).generic_string();
-        e.size = size;
-        e.offset = offset;
+        e.originalSize = size;
+        e.compressedSize = size;
+        e.dataOffset = model.data.size();
         e.crc32 =crc32(buffer.data(),size);
 
         model.index.push_back(e);
@@ -312,16 +312,16 @@ bool Archive::remove(
         }
 
         FileEntry ne = e;
-        ne.offset = offset;
+        ne.dataOffset = offset;
 
         newModel.index.push_back(ne);
 
         newModel.data.insert(
             newModel.data.end(),
-            model.data.begin() + e.offset,
-            model.data.begin() + e.offset + e.size);
+            model.data.begin() + e.dataOffset,
+            model.data.begin() + e.dataOffset + e.originalSize);
 
-        offset += e.size;
+        offset += e.originalSize;
     }
 
     return writeArchive(archiveName, newModel);
@@ -346,7 +346,7 @@ bool Archive::list(const std::string& archiveName)
         std::cout
             << f.name
             << " ("
-            << f.size
+            << f.originalSize
             << " bytes, crc="
             << f.crc32
             << ")\n";
@@ -393,8 +393,8 @@ bool Archive::extract(
         }
 
         out.write(
-            (char*)model.data.data() + f.offset,
-            f.size);
+            (char*)model.data.data() + f.dataOffset,
+            f.originalSize);
     }
 
     return true;
@@ -422,10 +422,10 @@ bool Archive::info(const std::string& archiveName)
     for (const auto& f : model.index)
     {
         std::cout << f.name << "\n";
-        std::cout << "  size: " << f.size << "\n";
+        std::cout << "  size: " << f.originalSize << "\n";
         std::cout << "  crc : " << f.crc32 << "\n\n";
 
-        total += f.size;
+        total += f.originalSize;
     }
 
     std::cout << "Total: " << total << "\n";
