@@ -9,6 +9,7 @@ set(CMAKE_DEPENDS_LANGUAGES
 # The set of dependency files which are needed:
 set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/t324/Desktop/Project/ArchiveProject(1y-2s)/src/Archive/Archive.cpp" "CMakeFiles/archive.dir/src/Archive/Archive.cpp.o" "gcc" "CMakeFiles/archive.dir/src/Archive/Archive.cpp.o.d"
+  "/home/t324/Desktop/Project/ArchiveProject(1y-2s)/src/Huffman/Huffman.cpp" "CMakeFiles/archive.dir/src/Huffman/Huffman.cpp.o" "gcc" "CMakeFiles/archive.dir/src/Huffman/Huffman.cpp.o.d"
   "/home/t324/Desktop/Project/ArchiveProject(1y-2s)/src/main.cpp" "CMakeFiles/archive.dir/src/main.cpp.o" "gcc" "CMakeFiles/archive.dir/src/main.cpp.o.d"
   "" "archive" "gcc" "CMakeFiles/archive.dir/link.d"
   )

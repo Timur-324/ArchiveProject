@@ -4,7 +4,7 @@
 # compile CXX with /usr/bin/c++
 CXX_DEFINES = 
 
-CXX_INCLUDES = -I"/home/t324/Desktop/Project/ArchiveProject(1y-2s)/src" -I"/home/t324/Desktop/Project/ArchiveProject(1y-2s)/src/Archive" -I"/home/t324/Desktop/Project/ArchiveProject(1y-2s)/src/Models"
+CXX_INCLUDES = -I"/home/t324/Desktop/Project/ArchiveProject(1y-2s)/src" -I"/home/t324/Desktop/Project/ArchiveProject(1y-2s)/src/Archive" -I"/home/t324/Desktop/Project/ArchiveProject(1y-2s)/src/Models" -I"/home/t324/Desktop/Project/ArchiveProject(1y-2s)/src/Huffman"
 
 CXX_FLAGS = -std=c++17 -Wall -Wextra -Wpedantic
 

@@ -153,6 +153,30 @@ src/Archive/Archive.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/archive.dir/build.make CMakeFiles/archive.dir/src/Archive/Archive.cpp.s
 .PHONY : src/Archive/Archive.cpp.s
 
+src/Huffman/Huffman.o: src/Huffman/Huffman.cpp.o
+.PHONY : src/Huffman/Huffman.o
+
+# target to build an object file
+src/Huffman/Huffman.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/archive.dir/build.make CMakeFiles/archive.dir/src/Huffman/Huffman.cpp.o
+.PHONY : src/Huffman/Huffman.cpp.o
+
+src/Huffman/Huffman.i: src/Huffman/Huffman.cpp.i
+.PHONY : src/Huffman/Huffman.i
+
+# target to preprocess a source file
+src/Huffman/Huffman.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/archive.dir/build.make CMakeFiles/archive.dir/src/Huffman/Huffman.cpp.i
+.PHONY : src/Huffman/Huffman.cpp.i
+
+src/Huffman/Huffman.s: src/Huffman/Huffman.cpp.s
+.PHONY : src/Huffman/Huffman.s
+
+# target to generate assembly for a file
+src/Huffman/Huffman.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/archive.dir/build.make CMakeFiles/archive.dir/src/Huffman/Huffman.cpp.s
+.PHONY : src/Huffman/Huffman.cpp.s
+
 src/main.o: src/main.cpp.o
 .PHONY : src/main.o
 
@@ -189,6 +213,9 @@ help:
 	@echo "... src/Archive/Archive.o"
 	@echo "... src/Archive/Archive.i"
 	@echo "... src/Archive/Archive.s"
+	@echo "... src/Huffman/Huffman.o"
+	@echo "... src/Huffman/Huffman.i"
+	@echo "... src/Huffman/Huffman.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"

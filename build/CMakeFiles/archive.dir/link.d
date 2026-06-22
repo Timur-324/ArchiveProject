@@ -4,6 +4,7 @@ archive: \
   /usr/lib/gcc/x86_64-linux-gnu/15/crtbeginS.o \
   CMakeFiles/archive.dir/src/main.cpp.o \
   CMakeFiles/archive.dir/src/Archive/Archive.cpp.o \
+  CMakeFiles/archive.dir/src/Huffman/Huffman.cpp.o \
   /usr/lib/gcc/x86_64-linux-gnu/15/libstdc++.so \
   /usr/lib/gcc/x86_64-linux-gnu/15/../../../x86_64-linux-gnu/libm.so \
   /usr/lib/gcc/x86_64-linux-gnu/15/../../../x86_64-linux-gnu/libm.so \
@@ -42,6 +43,8 @@ archive: \
 CMakeFiles/archive.dir/src/main.cpp.o:
 
 CMakeFiles/archive.dir/src/Archive/Archive.cpp.o:
+
+CMakeFiles/archive.dir/src/Huffman/Huffman.cpp.o:
 
 /usr/lib/gcc/x86_64-linux-gnu/15/libstdc++.so:
 

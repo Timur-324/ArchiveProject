@@ -85,12 +85,12 @@ clean: CMakeFiles/archive.dir/clean
 CMakeFiles/archive.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/archive.dir/build.make CMakeFiles/archive.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/archive.dir/build.make CMakeFiles/archive.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/t324/Desktop/Project/ArchiveProject(1y-2s)/build/CMakeFiles" --progress-num=1,2,3 "Built target archive"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/t324/Desktop/Project/ArchiveProject(1y-2s)/build/CMakeFiles" --progress-num=1,2,3,4 "Built target archive"
 .PHONY : CMakeFiles/archive.dir/all
 
 # Build rule for subdir invocation for target.
 CMakeFiles/archive.dir/rule: cmake_check_build_system
-	$(CMAKE_COMMAND) -E cmake_progress_start "/home/t324/Desktop/Project/ArchiveProject(1y-2s)/build/CMakeFiles" 3
+	$(CMAKE_COMMAND) -E cmake_progress_start "/home/t324/Desktop/Project/ArchiveProject(1y-2s)/build/CMakeFiles" 4
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/archive.dir/all
 	$(CMAKE_COMMAND) -E cmake_progress_start "/home/t324/Desktop/Project/ArchiveProject(1y-2s)/build/CMakeFiles" 0
 .PHONY : CMakeFiles/archive.dir/rule
@@ -102,7 +102,7 @@ archive: CMakeFiles/archive.dir/rule
 # codegen rule for target.
 CMakeFiles/archive.dir/codegen:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/archive.dir/build.make CMakeFiles/archive.dir/codegen
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/t324/Desktop/Project/ArchiveProject(1y-2s)/build/CMakeFiles" --progress-num=1,2,3 "Finished codegen for target archive"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir="/home/t324/Desktop/Project/ArchiveProject(1y-2s)/build/CMakeFiles" --progress-num=1,2,3,4 "Finished codegen for target archive"
 .PHONY : CMakeFiles/archive.dir/codegen
 
 # clean rule for target.

@@ -16,6 +16,8 @@ add_executable(
     src/main.cpp
 
     src/Archive/Archive.cpp
+
+    src/Huffman/Huffman.cpp
 )
 
 target_include_directories(
@@ -26,6 +28,7 @@ target_include_directories(
     src
     src/Archive
     src/Models
+    src/Huffman
 )
 
 if (MSVC)

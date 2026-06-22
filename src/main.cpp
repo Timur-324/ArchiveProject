@@ -1,8 +1,59 @@
 #include "Archive.h"
+#include "Huffman.h"
 #include <iostream>
+
+
+void testingHuffman()
+{
+    std::string text =
+        "AAAAAAABBBBBBBBBCCCCCCCCCCCC";
+
+    std::vector<uint8_t> data(
+        text.begin(),
+        text.end());
+
+    std::array<uint64_t,256> frequencies;
+
+    auto compressed =
+        Huffman::compress(
+            data,
+            frequencies);
+
+    auto decompressed =
+        Huffman::decompress(
+            compressed,
+            frequencies,
+            data.size());
+
+    std::string restored(
+        decompressed.begin(),
+        decompressed.end());
+
+    std::cout
+        << "Original size: "
+        << data.size()
+        << " bytes\n";
+
+    std::cout
+        << "Compressed size: "
+        << compressed.size()
+        << " bytes\n";
+
+    std::cout
+        << "Restored text: "
+        << restored
+        << '\n';
+
+    std::cout
+        << "Equal: "
+        << (restored == text ? "YES" : "NO")
+        << '\n';
+}
 
 int main(int argc, char* argv[])
 {
+
+    // testingHuffman();
     Archive archive;
 
     if (argc < 2)
