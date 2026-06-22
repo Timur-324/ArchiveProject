@@ -220,67 +220,47 @@ std::vector<uint8_t> Huffman::decompress(
     const std::array<uint64_t,256>& frequencies,
     uint64_t originalSize)
 {
-    Node* root =
-        buildTree(frequencies);
+    Node* root = buildTree(frequencies);
 
     if (!root)
         return {};
 
     std::vector<uint8_t> output;
-
-    output.reserve(
-        originalSize);
+    output.reserve(originalSize);
 
     if (root->isLeaf())
     {
-        for (uint64_t i = 0; i < originalSize; i++)
-        {
-            output.push_back(
-                root->symbol);
-        }
-
-        freeTree(root);
-        return output;
+        return std::vector<uint8_t>(
+            originalSize,
+            root->symbol);
     }
 
     Node* current = root;
 
-    for (uint8_t byte : compressed)
+    for (size_t i = 0; i < compressed.size() && output.size() < originalSize; i++)
     {
-        for (int bit = 7; bit >= 0; bit--)
-        {
-            bool value =
-                (byte >> bit) & 1;
+        uint8_t byte = compressed[i];
 
-            if (value)
+        for (int bit = 7; bit >= 0 && output.size() < originalSize; bit--)
+        {
+            bool value = (byte >> bit) & 1;
+
+            current = value ? current->right : current->left;
+
+            if (!current)
             {
-                current =
-                    current->right;
-            }
-            else
-            {
-                current =
-                    current->left;
+                freeTree(root);
+                return {};
             }
 
             if (current->isLeaf())
             {
-                output.push_back(
-                    current->symbol);
-
-                if (output.size() ==
-                    originalSize)
-                {
-                    freeTree(root);
-                    return output;
-                }
-
+                output.push_back(current->symbol);
                 current = root;
             }
         }
     }
 
     freeTree(root);
-
     return output;
 }

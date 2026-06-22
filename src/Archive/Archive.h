@@ -1,7 +1,7 @@
 #pragma once
 
 #include "FileEntry.h"
-#include <fstream>//библиотека для чтения/записи данных в файл
+#include <fstream>
 #include <string>
 #include <vector>
 

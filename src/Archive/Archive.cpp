@@ -14,16 +14,18 @@ uint32_t crc32(const uint8_t* data, size_t len)
     for (size_t i = 0; i < len; i++)
     {
         crc ^= data[i];
-
         for (int j = 0; j < 8; j++)
         {
             if (crc & 1)
+            {
                 crc = (crc >> 1) ^ 0xEDB88320;
+            }
             else
+            {
                 crc >>= 1;
+            }
         }
     }
-
     return ~crc;
 }
 
@@ -42,11 +44,9 @@ struct ArchiveModel
 ArchiveModel loadArchive(std::ifstream& in)
 {
     ArchiveModel model;
-
     uint32_t magic;
     uint32_t version;
     uint32_t count;
-
     in.read((char*)&magic, sizeof(magic));
     in.read((char*)&version, sizeof(version));
     in.read((char*)&count, sizeof(count));
@@ -103,7 +103,6 @@ ArchiveModel loadArchive(std::ifstream& in)
             buffer.end());
         currentOffset += e.compressedSize;
     }
-
     return model;
 }
 
@@ -113,15 +112,14 @@ bool writeArchive(
 {
     std::ofstream out(
         archiveName,
-        std::ios::binary);
+        std::ios::binary | std::ios::trunc);
 
     if (!out)
         return false;
 
-    uint32_t count =
-        static_cast<uint32_t>(
-            model.index.size());
+    uint32_t count = static_cast<uint32_t>(model.index.size());
 
+    // ---------- HEADER SIZE ----------
     uint64_t headerSize =
         sizeof(MAGIC) +
         sizeof(VERSION) +
@@ -130,8 +128,7 @@ bool writeArchive(
     for (const auto& e : model.index)
     {
         headerSize +=
-            sizeof(uint32_t) +
-            e.name.size() +
+            sizeof(uint32_t) + e.name.size() +
             sizeof(uint64_t) + // originalSize
             sizeof(uint64_t) + // compressedSize
             sizeof(uint64_t) + // dataOffset
@@ -139,10 +136,10 @@ bool writeArchive(
             sizeof(uint64_t) * 256; // frequencies
     }
 
-    uint64_t currentOffset = headerSize;
-
     std::vector<FileEntry> updatedIndex =
-        model.index;
+    model.index;
+
+    uint64_t currentOffset = headerSize;
 
     for (auto& e : updatedIndex)
     {
@@ -150,7 +147,7 @@ bool writeArchive(
         currentOffset += e.compressedSize;
     }
 
-
+    // ---------- WRITE HEADER ----------
     out.write((char*)&MAGIC, sizeof(MAGIC));
     out.write((char*)&VERSION, sizeof(VERSION));
     out.write((char*)&count, sizeof(count));
@@ -158,8 +155,7 @@ bool writeArchive(
     for (const auto& e : updatedIndex)
     {
         uint32_t len =
-            static_cast<uint32_t>(
-                e.name.size());
+            static_cast<uint32_t>(e.name.size());
 
         out.write((char*)&len, sizeof(len));
         out.write(e.name.data(), len);
@@ -169,14 +165,12 @@ bool writeArchive(
         out.write((char*)&e.dataOffset, sizeof(e.dataOffset));
         out.write((char*)&e.crc32, sizeof(e.crc32));
 
-        for (uint64_t freq : e.frequencies)
-        {
-            out.write(
-                (char*)&freq,
-                sizeof(freq));
-        }
+        out.write(
+            (char*)e.frequencies.data(),
+            sizeof(uint64_t) * 256);
     }
 
+    // ---------- WRITE DATA ----------
     out.write(
         (char*)model.data.data(),
         model.data.size());
@@ -194,8 +188,8 @@ bool Archive::create(
     {
          std::string name;
 
-        std::vector<uint8_t> buffer;        // оригинальные данные
-        std::vector<uint8_t> compressed;    // сжатые данные
+        std::vector<uint8_t> buffer;        // original data
+        std::vector<uint8_t> compressed;    // compressed data
 
         std::array<uint64_t, 256> frequencies;
 
@@ -262,16 +256,13 @@ bool Archive::create(
 
         e.name = f.name;
 
-        // размеры
         e.originalSize = f.buffer.size();
         e.compressedSize = f.compressed.size();
 
-        // Huffman данные
         e.frequencies = f.frequencies;
 
         e.dataOffset = offset;
 
-        // CRC по оригиналу
         e.crc32 =
             crc32(
                 f.buffer.data(),
@@ -279,7 +270,6 @@ bool Archive::create(
 
         model.index.push_back(e);
 
-        // В архив пишем ТОЛЬКО compressed
         model.data.insert(
             model.data.end(),
             f.compressed.begin(),
@@ -304,7 +294,6 @@ bool Archive::add(
         return false;
 
     ArchiveModel model = loadArchive(in);
-    in.close();
 
     for (const auto& path : files)
     {
@@ -347,9 +336,6 @@ bool Archive::add(
             compressed.begin(),
             compressed.end());
     }
-
-    std::cout << "INDEX SIZE: " << model.index.size() << "\n";
-    std::cout << "DATA SIZE: " << model.data.size() << "\n";
 
     return writeArchive(archiveName, model);
 }
@@ -448,7 +434,7 @@ bool Archive::extract(
         std::filesystem::path outPath =
             std::filesystem::path(outputDir) / f.name;
 
-        // ВАЖНО: создаём вложенные папки
+        // attached directories
         std::filesystem::create_directories(
             outPath.parent_path());
 
