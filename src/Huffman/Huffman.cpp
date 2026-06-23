@@ -87,7 +87,14 @@ static Node* buildTree(
         return nullptr;
 
     if (pq.size() == 1)
-        return pq.top();
+    {
+       Node* only = pq.top();
+       pq.pop();
+
+       return new Node(
+           only,
+           new Node(only->symbol, 0));
+    }
 
     while (pq.size() > 1)
     {
@@ -146,56 +153,49 @@ static void buildCodes(
 
 std::vector<uint8_t> Huffman::compress(
     const std::vector<uint8_t>& input,
-    std::array<uint64_t,256>& frequencies)
+    std::array<uint64_t,256>& frequencies,
+    uint32_t& outBitSize)
 {
     frequencies.fill(0);
 
     for (uint8_t byte : input)
-    {
         frequencies[byte]++;
-    }
 
-    Node* root =
-        buildTree(frequencies);
+    Node* root = buildTree(frequencies);
 
     if (!root)
+    {
+        outBitSize = 0;
         return {};
+    }
 
     std::array<std::vector<bool>,256> codes;
-
     std::vector<bool> current;
 
-    buildCodes(
-        root,
-        current,
-        codes);
+    buildCodes(root, current, codes);
 
     std::vector<uint8_t> output;
 
     uint8_t currentByte = 0;
     int bitCount = 0;
 
+    outBitSize = 0;
+
     for (uint8_t byte : input)
     {
-        const auto& code =
-            codes[byte];
+        const auto& code = codes[byte];
 
         for (bool bit : code)
         {
             currentByte <<= 1;
-
-            if (bit)
-            {
-                currentByte |= 1;
-            }
+            if (bit) currentByte |= 1;
 
             bitCount++;
+            outBitSize++;
 
             if (bitCount == 8)
             {
-                output.push_back(
-                    currentByte);
-
+                output.push_back(currentByte);
                 currentByte = 0;
                 bitCount = 0;
             }
@@ -205,20 +205,18 @@ std::vector<uint8_t> Huffman::compress(
     if (bitCount > 0)
     {
         currentByte <<= (8 - bitCount);
-
-        output.push_back(
-            currentByte);
+        output.push_back(currentByte);
     }
 
     freeTree(root);
-
     return output;
 }
 
 std::vector<uint8_t> Huffman::decompress(
     const std::vector<uint8_t>& compressed,
     const std::array<uint64_t,256>& frequencies,
-    uint64_t originalSize)
+    uint64_t originalSize,
+    uint32_t bitSize)
 {
     Node* root = buildTree(frequencies);
 
@@ -237,11 +235,17 @@ std::vector<uint8_t> Huffman::decompress(
 
     Node* current = root;
 
-    for (size_t i = 0; i < compressed.size() && output.size() < originalSize; i++)
+    uint32_t bitsRead = 0;
+
+    for (size_t i = 0;
+         i < compressed.size() && bitsRead < bitSize;
+         i++)
     {
         uint8_t byte = compressed[i];
 
-        for (int bit = 7; bit >= 0 && output.size() < originalSize; bit--)
+        for (int bit = 7;
+             bit >= 0 && bitsRead < bitSize;
+             bit--)
         {
             bool value = (byte >> bit) & 1;
 
@@ -257,7 +261,15 @@ std::vector<uint8_t> Huffman::decompress(
             {
                 output.push_back(current->symbol);
                 current = root;
+
+                if (output.size() >= originalSize)
+                {
+                    freeTree(root);
+                    return output;
+                }
             }
+
+            bitsRead++;
         }
     }
 

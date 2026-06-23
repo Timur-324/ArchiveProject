@@ -1,5 +1,6 @@
 #include "Archive.h"
 #include "Huffman.h"
+#include "FileEntry.h"
 #include <filesystem>
 #include <iostream>
 #include <vector>
@@ -72,12 +73,26 @@ ArchiveModel loadArchive(std::ifstream& in)
         in.read((char*)&e.compressedSize,sizeof(e.compressedSize));
         in.read((char*)&e.dataOffset,sizeof(e.dataOffset));
         in.read((char*)&e.crc32,sizeof(e.crc32));
+        in.read((char*)&e.bitSize, sizeof(e.bitSize));
 
-        for (auto& freq : e.frequencies)
+        uint32_t usedCount;
+
+        in.read(
+            (char*)&usedCount,
+            sizeof(usedCount));
+
+        e.frequencies.resize(
+            usedCount);
+
+        for (auto& f : e.frequencies)
         {
             in.read(
-                (char*)&freq,
-                sizeof(freq));
+                (char*)&f.symbol,
+                sizeof(f.symbol));
+
+            in.read(
+                (char*)&f.frequency,
+                sizeof(f.frequency));
         }
     }
 
@@ -117,7 +132,8 @@ bool writeArchive(
     if (!out)
         return false;
 
-    uint32_t count = static_cast<uint32_t>(model.index.size());
+    uint32_t count =
+        static_cast<uint32_t>(model.index.size());
 
     // ---------- HEADER SIZE ----------
     uint64_t headerSize =
@@ -128,16 +144,21 @@ bool writeArchive(
     for (const auto& e : model.index)
     {
         headerSize +=
-            sizeof(uint32_t) + e.name.size() +
+            sizeof(uint32_t) + e.name.size() + // name
             sizeof(uint64_t) + // originalSize
             sizeof(uint64_t) + // compressedSize
             sizeof(uint64_t) + // dataOffset
             sizeof(uint32_t) + // crc32
-            sizeof(uint64_t) * 256; // frequencies
+            sizeof(uint32_t) + // bitSize
+            sizeof(uint32_t); // usedCount
+
+        headerSize +=
+            e.frequencies.size() *
+            (sizeof(uint8_t) + sizeof(uint32_t));
     }
 
-    std::vector<FileEntry> updatedIndex =
-    model.index;
+    // ---------- UPDATE OFFSETS ----------
+    std::vector<FileEntry> updatedIndex = model.index;
 
     uint64_t currentOffset = headerSize;
 
@@ -148,31 +169,42 @@ bool writeArchive(
     }
 
     // ---------- WRITE HEADER ----------
-    out.write((char*)&MAGIC, sizeof(MAGIC));
-    out.write((char*)&VERSION, sizeof(VERSION));
-    out.write((char*)&count, sizeof(count));
+    out.write(reinterpret_cast<const char*>(&MAGIC), sizeof(MAGIC));
+    out.write(reinterpret_cast<const char*>(&VERSION), sizeof(VERSION));
+    out.write(reinterpret_cast<const char*>(&count), sizeof(count));
 
     for (const auto& e : updatedIndex)
     {
         uint32_t len =
             static_cast<uint32_t>(e.name.size());
 
-        out.write((char*)&len, sizeof(len));
+        out.write(reinterpret_cast<const char*>(&len), sizeof(len));
         out.write(e.name.data(), len);
 
-        out.write((char*)&e.originalSize, sizeof(e.originalSize));
-        out.write((char*)&e.compressedSize, sizeof(e.compressedSize));
-        out.write((char*)&e.dataOffset, sizeof(e.dataOffset));
-        out.write((char*)&e.crc32, sizeof(e.crc32));
+        out.write(reinterpret_cast<const char*>(&e.originalSize), sizeof(e.originalSize));
+        out.write(reinterpret_cast<const char*>(&e.compressedSize), sizeof(e.compressedSize));
+        out.write(reinterpret_cast<const char*>(&e.dataOffset), sizeof(e.dataOffset));
+        out.write(reinterpret_cast<const char*>(&e.crc32), sizeof(e.crc32));
 
-        out.write(
-            (char*)e.frequencies.data(),
-            sizeof(uint64_t) * 256);
+        // ---------- bitSize ----------
+        out.write(reinterpret_cast<const char*>(&e.bitSize), sizeof(e.bitSize));
+
+        // ---------- frequencies ----------
+        uint32_t usedCount =
+            static_cast<uint32_t>(e.frequencies.size());
+
+        out.write(reinterpret_cast<const char*>(&usedCount), sizeof(usedCount));
+
+        for (const auto& f : e.frequencies)
+        {
+            out.write(reinterpret_cast<const char*>(&f.symbol), sizeof(f.symbol));
+            out.write(reinterpret_cast<const char*>(&f.frequency), sizeof(f.frequency));
+        }
     }
 
     // ---------- WRITE DATA ----------
     out.write(
-        (char*)model.data.data(),
+        reinterpret_cast<const char*>(model.data.data()),
         model.data.size());
 
     return true;
@@ -186,15 +218,17 @@ bool Archive::create(
 
     struct TempFile
     {
-         std::string name;
+        std::string name;
 
-        std::vector<uint8_t> buffer;        // original data
-        std::vector<uint8_t> compressed;    // compressed data
+        std::vector<uint8_t> buffer;
+        std::vector<uint8_t> compressed;
 
         std::array<uint64_t, 256> frequencies;
 
-        size_t originalSize;
-        size_t compressedSize;
+        uint32_t bitSize = 0;
+
+        size_t originalSize = 0;
+        size_t compressedSize = 0;
     };
 
     std::vector<TempFile> tempFiles;
@@ -208,11 +242,7 @@ bool Archive::create(
 
         if (!in)
         {
-            std::cerr
-                << "Cannot open file: "
-                << path
-                << '\n';
-
+            std::cerr << "Cannot open file: " << path << '\n';
             return false;
         }
 
@@ -222,24 +252,26 @@ bool Archive::create(
 
         std::vector<uint8_t> buffer(size);
 
-        in.read(
-            (char*)buffer.data(),
-            size);
+        in.read(reinterpret_cast<char*>(buffer.data()), size);
 
-        std::array<uint64_t,256> frequencies;
+        std::array<uint64_t, 256> frequencies{};
+
+        uint32_t bitSize = 0;
 
         auto compressed =
             Huffman::compress(
                 buffer,
-                frequencies);
+                frequencies,
+                bitSize);
 
         TempFile f;
 
         f.name = std::filesystem::path(path).generic_string();
-
         f.buffer = std::move(buffer);
         f.compressed = std::move(compressed);
+
         f.frequencies = frequencies;
+        f.bitSize = bitSize;
 
         f.originalSize = f.buffer.size();
         f.compressedSize = f.compressed.size();
@@ -255,20 +287,32 @@ bool Archive::create(
         FileEntry e;
 
         e.name = f.name;
-
-        e.originalSize = f.buffer.size();
-        e.compressedSize = f.compressed.size();
-
-        e.frequencies = f.frequencies;
-
+        e.originalSize = f.originalSize;
+        e.compressedSize = f.compressedSize;
         e.dataOffset = offset;
+
+        e.bitSize = f.bitSize;
 
         e.crc32 =
             crc32(
                 f.buffer.data(),
                 f.buffer.size());
 
-        model.index.push_back(e);
+        // ---------- convert frequencies ----------
+        for (int i = 0; i < 256; i++)
+        {
+            if (f.frequencies[i] == 0)
+                continue;
+
+            HuffmanNodeInfo info;
+
+            info.symbol = static_cast<uint8_t>(i);
+            info.frequency = static_cast<uint32_t>(f.frequencies[i]);
+
+            e.frequencies.push_back(info);
+        }
+
+        model.index.push_back(std::move(e));
 
         model.data.insert(
             model.data.end(),
@@ -277,11 +321,9 @@ bool Archive::create(
 
         offset += f.compressed.size();
     }
-    
+
     // ---------- WRITE ----------
-    return writeArchive(
-        archiveName,
-        model);
+    return writeArchive(archiveName, model);
 }
 
 bool Archive::add(
@@ -308,12 +350,17 @@ bool Archive::add(
 
         std::vector<uint8_t> buffer(size);
 
-        f.read((char*)buffer.data(), size);
+        f.read(reinterpret_cast<char*>(buffer.data()), size);
 
         std::array<uint64_t, 256> frequencies{};
 
+        uint32_t bitSize = 0;
+
         auto compressed =
-            Huffman::compress(buffer, frequencies);
+            Huffman::compress(
+                buffer,
+                frequencies,
+                bitSize);
 
         FileEntry e;
 
@@ -321,15 +368,31 @@ bool Archive::add(
 
         e.originalSize = buffer.size();
         e.compressedSize = compressed.size();
-        e.frequencies = frequencies;
 
-        e.crc32 = crc32(
-            buffer.data(),
-            buffer.size());
+        e.bitSize = bitSize;
+
+        e.crc32 =
+            crc32(
+                buffer.data(),
+                buffer.size());
 
         e.dataOffset = model.data.size();
 
-        model.index.push_back(e);
+        // ---------- convert frequencies ----------
+        for (int i = 0; i < 256; i++)
+        {
+            if (frequencies[i] == 0)
+                continue;
+
+            HuffmanNodeInfo info;
+
+            info.symbol = static_cast<uint8_t>(i);
+            info.frequency = static_cast<uint32_t>(frequencies[i]);
+
+            e.frequencies.push_back(info);
+        }
+
+        model.index.push_back(std::move(e));
 
         model.data.insert(
             model.data.end(),
@@ -434,33 +497,46 @@ bool Archive::extract(
         std::filesystem::path outPath =
             std::filesystem::path(outputDir) / f.name;
 
-        // attached directories
-        std::filesystem::create_directories(
-            outPath.parent_path());
+        std::filesystem::create_directories(outPath.parent_path());
 
-        std::ofstream out(
-            outPath,
-            std::ios::binary);
+        std::ofstream out(outPath, std::ios::binary);
 
         if (!out)
         {
-            std::cerr << "Cannot create file: "
-                      << outPath << '\n';
+            std::cerr << "Cannot create file: " << outPath << '\n';
             continue;
         }
 
+        // ---------- GET COMPRESSED DATA ----------
         std::vector<uint8_t> compressed(
             model.data.begin() + f.dataOffset,
             model.data.begin() + f.dataOffset + f.compressedSize);
 
+        // ---------- RESTORE FREQUENCY TABLE ----------
+        std::array<uint64_t, 256> freq{};
+        freq.fill(0);
+
+        for (const auto& item : f.frequencies)
+        {
+            freq[item.symbol] = item.frequency;
+        }
+
+        // ---------- DECOMPRESS (bitSize FIX) ----------
         auto decompressed =
             Huffman::decompress(
                 compressed,
-                f.frequencies,
-                f.originalSize);
+                freq,
+                f.originalSize,
+                f.bitSize);
+
+        if (decompressed.empty() && f.originalSize != 0)
+        {
+            std::cerr << "Decompression failed: " << f.name << '\n';
+            continue;
+        }
 
         out.write(
-            (char*)decompressed.data(),
+            reinterpret_cast<const char*>(decompressed.data()),
             decompressed.size());
     }
 
