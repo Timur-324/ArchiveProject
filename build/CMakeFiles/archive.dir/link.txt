@@ -1,1 +1,0 @@
-/usr/bin/c++ -Wl,--dependency-file=CMakeFiles/archive.dir/link.d CMakeFiles/archive.dir/src/main.cpp.o CMakeFiles/archive.dir/src/Archive/Archive.cpp.o CMakeFiles/archive.dir/src/Huffman/Huffman.cpp.o -o archive

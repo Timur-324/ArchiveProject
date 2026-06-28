@@ -1,3 +1,0 @@
-/home/t324/Desktop/Project/ArchiveProject(1y-2s)/build/CMakeFiles/archive.dir
-/home/t324/Desktop/Project/ArchiveProject(1y-2s)/build/CMakeFiles/edit_cache.dir
-/home/t324/Desktop/Project/ArchiveProject(1y-2s)/build/CMakeFiles/rebuild_cache.dir
